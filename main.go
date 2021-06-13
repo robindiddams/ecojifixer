@@ -13,10 +13,6 @@ import (
 	"github.com/robindiddams/emojidict"
 )
 
-type ecoji struct {
-	cp rune
-}
-
 func parseMapping(buf []byte) ([]rune, error) {
 	re := regexp.MustCompile(`\temojis\[\d+\] = 0x([0-9A-Z]+)\n`)
 	matches := re.FindAllSubmatch(buf, -1)
