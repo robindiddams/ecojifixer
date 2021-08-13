@@ -27,8 +27,8 @@ github.com/onsi/gomega v1.10.1/go.mod h1:iN09h71vgCQne3DLsj+A5owkum+a2tYe+TOCB1y
 github.com/onsi/gomega v1.11.0/go.mod h1:azGKhqFUon9Vuj0YmTfLSmx0FUwqXYSTl5re8lQLTUg=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
-github.com/robindiddams/emojidict v0.0.0-20210501212910-0492dd1bdbcc h1:UpQSidxZSe1DIeKZJgRTN3FYjyW/IU6ZnfYr/RDSm0k=
-github.com/robindiddams/emojidict v0.0.0-20210501212910-0492dd1bdbcc/go.mod h1:Tsq+96y+aI8FaVfN9X1euVpcSwx+xpzDDVhlXWhCgeU=
+github.com/robindiddams/emojidict v0.0.1 h1:P/2ZFJiXMzmnMs7DKkGICtL+xvtDzYBJBkSxcBksxzA=
+github.com/robindiddams/emojidict v0.0.1/go.mod h1:yoFtbqAnkpGDFjakMEQsMLgMKdEJeLY91nBfLsYIXEs=
 github.com/robindiddams/go-trie v0.0.1 h1:TcDRp5x0UkPnnfkazp9/N4kSzxD6yLOVL14oboXlnLk=
 github.com/robindiddams/go-trie v0.0.1/go.mod h1:cNx+8khRJ+pyJkGr8IblKC6aZnZIGdcNT6X4dZboUL0=
 github.com/secsy/goftp v0.0.0-20190720192957-f31499d7c79a/go.mod h1:MnkX001NG75g3p8bhFycnyIjeQoOjGL6CEIsdE/nKSY=
