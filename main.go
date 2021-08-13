@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"regexp"
@@ -17,6 +18,21 @@ var paddingRunes = []rune{
 	0x1F3CD,
 	0x1F4D1,
 	0x1F64B,
+}
+
+func getName(r rune) (string, bool) {
+	resp, err := http.Get(fmt.Sprintf("https://emojipedia.org/emoji/%c/", r))
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+	buf, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+	str := string(buf)
+	match := regexp.MustCompile(`<title>(.*)</title>`).FindStringSubmatch(str)
+	return match[1], false
 }
 
 func parseMapping(buf []byte) ([]rune, error) {
@@ -47,6 +63,18 @@ func getMapping() ([]byte, error) {
 	return buf, nil
 }
 
+// these are a part of future emoji spec (14)
+var newEmojis = []rune{
+	emojidict.MeltingFace[0],
+	emojidict.FaceWithOpenEyesAndHandOverMouth[0],
+	emojidict.FaceWithPeekingEye[0],
+	emojidict.SalutingFace[0],
+	emojidict.DottedLineFace[0],
+	emojidict.FaceWithDiagonalMouth[0],
+	emojidict.FaceHoldingBackTears[0],
+}
+
+// these ones keith didnt really like
 var redundantRunes = []rune{
 	emojidict.WhiteCircle[0],
 	emojidict.BlackCircle[0],
@@ -114,9 +142,6 @@ func main() {
 			// singlePointRunes[emoji[0]] = true
 			singlePointRunesStack = append(singlePointRunesStack, emoji[0])
 		}
-		if emojidict.Zombie[0] == emoji[0] {
-			fmt.Printf("ejecting %x %c %d\n", emoji, emoji, len(emoji))
-		}
 	}
 
 	removeRune := func(r rune) {
@@ -137,6 +162,9 @@ func main() {
 	}
 	for _, redundant := range redundantRunes {
 		removeRune(redundant)
+	}
+	for _, new := range newEmojis {
+		removeRune(new)
 	}
 
 	fmt.Println("remaining:", len(singlePointRunesStack))
@@ -159,7 +187,9 @@ func main() {
 	for i, original := range paddingRunes {
 		if !checkRune(original) {
 			replacement := getReplacement()
-			fmt.Printf("replacement emoji required at at %d (%c), using %x (%c)\n", i, original, replacement, replacement)
+			name, draft := getName(replacement)
+
+			fmt.Printf("replacement padding emoji (%c), using %x ( %c )  %s  (draft: %t)\n", original, replacement, replacement, name, draft)
 			fmt.Fprintf(os.Stderr, "| %d | %c (%x) | %c (%x) |\n", i, original, original, replacement, replacement)
 		} else {
 			fmt.Fprintf(os.Stderr, "| %d | %c (%x) | - |\n", i, original, original)
@@ -176,7 +206,8 @@ func main() {
 		if !checkRune(original) {
 			replacement := getReplacement()
 			finalSet = append(finalSet, replacement)
-			fmt.Printf("replacement emoji required at at %d (%c), using %x (%c)\n", i, original, replacement, replacement)
+			name, draft := getName(replacement)
+			fmt.Printf("replacemed emoji %d (%c), with %x ( %c )  %s  (draft: %t)\n", i, original, replacement, replacement, name, draft)
 			fmt.Fprintf(os.Stderr, "| %d | %c (%x) | %c (%x) |\n", i, original, original, replacement, replacement)
 		} else {
 			finalSet = append(finalSet, original)
@@ -192,6 +223,7 @@ func main() {
 	for i := index; i < len(singlePointRunesStack); i++ {
 		fmt.Fprintf(os.Stderr, "| - | %c (%x) | - |\n", singlePointRunesStack[i], singlePointRunesStack[i])
 	}
+	fmt.Println("unused:", len(singlePointRunesStack)-index+1)
 
 	fmt.Println("writing final set")
 	var str string
