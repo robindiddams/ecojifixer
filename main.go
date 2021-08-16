@@ -8,6 +8,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/robindiddams/emojidict"
 )
@@ -32,7 +33,8 @@ func getName(r rune) (string, bool) {
 	}
 	str := string(buf)
 	match := regexp.MustCompile(`<title>(.*)</title>`).FindStringSubmatch(str)
-	return match[1], false
+	name := strings.TrimSpace(strings.Replace(strings.Replace(match[1], string(r), "", 1), "Emoji", "", 1))
+	return name, false
 }
 
 func parseMapping(buf []byte) ([]rune, error) {
@@ -64,54 +66,99 @@ func getMapping() ([]byte, error) {
 }
 
 // these are a part of future emoji spec (14)
-var newEmojis = []rune{
-	emojidict.MeltingFace[0],
-	emojidict.FaceWithOpenEyesAndHandOverMouth[0],
-	emojidict.FaceWithPeekingEye[0],
-	emojidict.SalutingFace[0],
-	emojidict.DottedLineFace[0],
-	emojidict.FaceWithDiagonalMouth[0],
-	emojidict.FaceHoldingBackTears[0],
+var newEmojis = [][]rune{
+	emojidict.MeltingFace,
+	emojidict.FaceWithOpenEyesAndHandOverMouth,
+	emojidict.FaceWithPeekingEye,
+	emojidict.SalutingFace,
+	emojidict.DottedLineFace,
+	emojidict.FaceWithDiagonalMouth,
+	emojidict.FaceHoldingBackTears,
+	emojidict.RightwardsHand,
+	emojidict.LeftwardsHand,
+	emojidict.PalmDownHand,
+	emojidict.PalmUpHand,
+	emojidict.HandWithIndexFingerAndThumbCrossed,
+	emojidict.IndexPointingAtTheViewer,
+	emojidict.HeartHands,
+	emojidict.BitingLip,
+	emojidict.PregnantMan,
+	emojidict.Coral,
+	emojidict.Lotus,
+	emojidict.EmptyNest,
+	emojidict.NestWithEggs,
+	emojidict.Beans,
+	emojidict.PouringLiquid,
+	emojidict.Jar,
+	emojidict.PlaygroundSlide,
+	emojidict.Wheel,
+	emojidict.RingBuoy,
+	emojidict.Hamsa,
+	emojidict.MirrorBall,
+	emojidict.LowBattery,
+	emojidict.Crutch,
+	emojidict.XRay,
+}
+
+var peopleRunes = [][]rune{
+	emojidict.DeafPerson,
+	emojidict.Ninja,
+	emojidict.PersonWithCrown,
+	emojidict.PregnantPerson,
+	emojidict.Mage,
+	emojidict.Fairy,
+	emojidict.Vampire,
+	emojidict.Merperson,
+	emojidict.Elf,
+	emojidict.Genie,
+	emojidict.Zombie,
+	emojidict.Troll,
+	emojidict.PersonStanding,
+	emojidict.PersonKneeling,
+	emojidict.PersonInSteamyRoom,
+	emojidict.PersonInLotusPosition,
+	emojidict.PersonClimbing,
+	emojidict.PeopleHugging,
 }
 
 // these ones keith didnt really like
-var redundantRunes = []rune{
-	emojidict.WhiteCircle[0],
-	emojidict.BlackCircle[0],
-	emojidict.CrossMark[0],              // x
-	emojidict.CrossMarkButton[0],        // negative_squared_cross_mark
-	emojidict.RedQuestionMark[0],        // question
-	emojidict.WhiteQuestionMark[0],      // grey_question
-	emojidict.WhiteExclamationMark[0],   // grey_exclamation
-	emojidict.RedExclamationMark[0],     // exclamation
-	emojidict.Plus[0],                   // heavy_plus_sign
-	emojidict.Minus[0],                  // heavy_minus_sign
-	emojidict.Divide[0],                 // heavy_division_sign
-	emojidict.OrangeCircle[0],           // orange_circle
-	emojidict.YellowCircle[0],           // yellow_circle
-	emojidict.GreenCircle[0],            // green_circle
-	emojidict.PurpleCircle[0],           // purple_circle
-	emojidict.BrownCircle[0],            // brown_circle
-	emojidict.RedSquare[0],              // red_square
-	emojidict.BlueSquare[0],             // blue_square
-	emojidict.OrangeSquare[0],           // orange_square
-	emojidict.YellowSquare[0],           // yellow_square
-	emojidict.GreenSquare[0],            // green_square
-	emojidict.PurpleSquare[0],           // purple_square
-	emojidict.BrownSquare[0],            // brown_square
-	emojidict.BlackLargeSquare[0],       // black_large_square
-	emojidict.WhiteLargeSquare[0],       // white_large_square
-	emojidict.WhiteMediumSmallSquare[0], // white_medium_small_square
-	emojidict.BlackMediumSmallSquare[0], // black_medium_small_square
-	emojidict.CheckMarkButton[0],        // white_check_mark
+var redundantRunes = [][]rune{
+	emojidict.WhiteCircle,
+	emojidict.BlackCircle,
+	emojidict.CrossMark,              // x
+	emojidict.CrossMarkButton,        // negative_squared_cross_mark
+	emojidict.RedQuestionMark,        // question
+	emojidict.WhiteQuestionMark,      // grey_question
+	emojidict.WhiteExclamationMark,   // grey_exclamation
+	emojidict.RedExclamationMark,     // exclamation
+	emojidict.Plus,                   // heavy_plus_sign
+	emojidict.Minus,                  // heavy_minus_sign
+	emojidict.Divide,                 // heavy_division_sign
+	emojidict.OrangeCircle,           // orange_circle
+	emojidict.YellowCircle,           // yellow_circle
+	emojidict.GreenCircle,            // green_circle
+	emojidict.PurpleCircle,           // purple_circle
+	emojidict.BrownCircle,            // brown_circle
+	emojidict.RedSquare,              // red_square
+	emojidict.BlueSquare,             // blue_square
+	emojidict.OrangeSquare,           // orange_square
+	emojidict.YellowSquare,           // yellow_square
+	emojidict.GreenSquare,            // green_square
+	emojidict.PurpleSquare,           // purple_square
+	emojidict.BrownSquare,            // brown_square
+	emojidict.BlackLargeSquare,       // black_large_square
+	emojidict.WhiteLargeSquare,       // white_large_square
+	emojidict.WhiteMediumSmallSquare, // white_medium_small_square
+	emojidict.BlackMediumSmallSquare, // black_medium_small_square
+	emojidict.CheckMarkButton,        // white_check_mark
 
-	emojidict.Watch[0],            // watch
-	emojidict.HourglassDone[0],    // hourglass
-	emojidict.AlarmClock[0],       // alarm_clock
-	emojidict.HourglassNotDone[0], // hourglass_flowing_sand
-	emojidict.WhiteHeart[0],       // white_heart
-	emojidict.BrownHeart[0],       // brown_heart
-	emojidict.OrangeHeart[0],      // orange_heart
+	emojidict.Watch,            // watch
+	emojidict.HourglassDone,    // hourglass
+	emojidict.AlarmClock,       // alarm_clock
+	emojidict.HourglassNotDone, // hourglass_flowing_sand
+	emojidict.WhiteHeart,       // white_heart
+	emojidict.BrownHeart,       // brown_heart
+	emojidict.OrangeHeart,      // orange_heart
 }
 
 func main() {
@@ -161,10 +208,13 @@ func main() {
 		removeRune(originalPadding)
 	}
 	for _, redundant := range redundantRunes {
-		removeRune(redundant)
+		removeRune(redundant[0])
 	}
 	for _, new := range newEmojis {
-		removeRune(new)
+		removeRune(new[0])
+	}
+	for _, personEmoji := range peopleRunes {
+		removeRune(personEmoji[0])
 	}
 
 	fmt.Println("remaining:", len(singlePointRunesStack))
@@ -181,16 +231,16 @@ func main() {
 
 	fmt.Fprintf(os.Stderr, "## Padding \n\n")
 
-	fmt.Fprintf(os.Stderr, "| index | Emoji (hex) | Replacement (hex) |\n")
+	fmt.Fprintf(os.Stderr, "| index | V1 Emoji (hex) | Replacement (hex) (name) |\n")
 	fmt.Fprintf(os.Stderr, "|-------|-------------|-------------------|\n")
 
 	for i, original := range paddingRunes {
 		if !checkRune(original) {
 			replacement := getReplacement()
-			name, draft := getName(replacement)
+			name, _ := getName(replacement)
 
-			fmt.Printf("replacement padding emoji (%c), using %x ( %c )  %s  (draft: %t)\n", original, replacement, replacement, name, draft)
-			fmt.Fprintf(os.Stderr, "| %d | %c (%x) | %c (%x) |\n", i, original, original, replacement, replacement)
+			fmt.Printf("replacement padding emoji (%c), using %x ( %c )  %s\n", original, replacement, replacement, name)
+			fmt.Fprintf(os.Stderr, "| %d | %c (%x) | %c (%x) (%s) |\n", i, original, original, replacement, replacement, name)
 		} else {
 			fmt.Fprintf(os.Stderr, "| %d | %c (%x) | - |\n", i, original, original)
 		}
@@ -198,7 +248,7 @@ func main() {
 
 	fmt.Fprintf(os.Stderr, "\n## Emojis \n\n")
 
-	fmt.Fprintf(os.Stderr, "| index | Emoji (hex) | Replacement (hex) |\n")
+	fmt.Fprintf(os.Stderr, "| index | V1 Emoji (hex) | Replacement (hex) (name) |\n")
 	fmt.Fprintf(os.Stderr, "|-------|-------------|-------------------|\n")
 
 	var finalSet []rune
@@ -206,9 +256,9 @@ func main() {
 		if !checkRune(original) {
 			replacement := getReplacement()
 			finalSet = append(finalSet, replacement)
-			name, draft := getName(replacement)
-			fmt.Printf("replacemed emoji %d (%c), with %x ( %c )  %s  (draft: %t)\n", i, original, replacement, replacement, name, draft)
-			fmt.Fprintf(os.Stderr, "| %d | %c (%x) | %c (%x) |\n", i, original, original, replacement, replacement)
+			name, _ := getName(replacement)
+			fmt.Printf("replacemed emoji %d (%c), with %x ( %c )  %s\n", i, original, replacement, replacement, name)
+			fmt.Fprintf(os.Stderr, "| %d | %c (%x) | %c (%x) (%s) |\n", i, original, original, replacement, replacement, name)
 		} else {
 			finalSet = append(finalSet, original)
 			fmt.Fprintf(os.Stderr, "| %d | %c (%x) | - |\n", i, original, original)
@@ -217,11 +267,12 @@ func main() {
 
 	fmt.Fprintf(os.Stderr, "\n## Unused/remaining \n\n")
 
-	fmt.Fprintf(os.Stderr, "| index | Emoji (hex) | Replacement (hex) |\n")
+	fmt.Fprintf(os.Stderr, "| index | V1 Emoji (hex) | Replacement (hex) (name) |\n")
 	fmt.Fprintf(os.Stderr, "|-------|-------------|-------------------|\n")
 
 	for i := index; i < len(singlePointRunesStack); i++ {
-		fmt.Fprintf(os.Stderr, "| - | %c (%x) | - |\n", singlePointRunesStack[i], singlePointRunesStack[i])
+		name, _ := getName(singlePointRunesStack[i])
+		fmt.Fprintf(os.Stderr, "| - | %c (%x) (%s) | - |\n", singlePointRunesStack[i], singlePointRunesStack[i], name)
 	}
 	fmt.Println("unused:", len(singlePointRunesStack)-index+1)
 
