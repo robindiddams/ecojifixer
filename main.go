@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -21,7 +20,27 @@ var paddingRunes = []rune{
 	0x1F64B,
 }
 
-func getName(r rune) (string, bool) {
+func getCachedName(r rune) (string, bool) {
+	buf, err := os.ReadFile(fmt.Sprintf("cache/%x", r))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", false
+		}
+		panic(err)
+	}
+	return string(buf), true
+}
+
+func saveNameToCache(r rune, name string) {
+	if err := os.WriteFile(fmt.Sprintf("cache/%x", r), []byte(name), 0644); err != nil {
+		fmt.Fprintln(os.Stderr, err, os.IsExist(err))
+	}
+}
+
+func getName(r rune) string {
+	if cached, found := getCachedName(r); found {
+		return cached
+	}
 	resp, err := http.Get(fmt.Sprintf("https://emojipedia.org/emoji/%c/", r))
 	if err != nil {
 		panic(err)
@@ -34,7 +53,8 @@ func getName(r rune) (string, bool) {
 	str := string(buf)
 	match := regexp.MustCompile(`<title>(.*)</title>`).FindStringSubmatch(str)
 	name := strings.TrimSpace(strings.Replace(strings.Replace(match[1], string(r), "", 1), "Emoji", "", 1))
-	return name, false
+	saveNameToCache(r, name)
+	return name
 }
 
 func parseMapping(buf []byte) ([]rune, error) {
@@ -53,12 +73,7 @@ func parseMapping(buf []byte) ([]rune, error) {
 }
 
 func getMapping() ([]byte, error) {
-	resp, err := http.Get("https://raw.githubusercontent.com/keith-turner/ecoji/master/mapping.go")
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	buf, err := io.ReadAll(resp.Body)
+	buf, err := ioutil.ReadFile("mapping.txt")
 	if err != nil {
 		return nil, err
 	}
@@ -98,6 +113,8 @@ var newEmojis = [][]rune{
 	emojidict.LowBattery,
 	emojidict.Crutch,
 	emojidict.XRay,
+	emojidict.HeavyEqualsSign,
+	emojidict.Bubbles,
 }
 
 var peopleRunes = [][]rune{
@@ -119,10 +136,16 @@ var peopleRunes = [][]rune{
 	emojidict.PersonInLotusPosition,
 	emojidict.PersonClimbing,
 	emojidict.PeopleHugging,
+
+	// things that skin tone modifiers attatch to
+	emojidict.RaisedHand,
+	emojidict.PinchedFingers,
+	emojidict.PinchingHand,
+	emojidict.RaisedFist,
 }
 
-// these ones keith didnt really like
 var redundantRunes = [][]rune{
+	// these ones keith didnt really like
 	emojidict.WhiteCircle,
 	emojidict.BlackCircle,
 	emojidict.CrossMark,              // x
@@ -159,10 +182,25 @@ var redundantRunes = [][]rune{
 	emojidict.WhiteHeart,       // white_heart
 	emojidict.BrownHeart,       // brown_heart
 	emojidict.OrangeHeart,      // orange_heart
+
+	// these are ones I dont really like
+	emojidict.Elevator,
+}
+
+var selectionOverrides = map[int][]rune{
+	859: emojidict.SmilingFaceWithTear,
+	860: emojidict.DisguisedFace,
+	664: emojidict.YawningFace,
+}
+
+var paddingSelectionOverrides = map[int][]rune{
+	1: emojidict.PottedPlant,
+	2: emojidict.RollerSkate,
 }
 
 func main() {
-	fmt.Println("fetching mapping from keith-turner/ecoji")
+	os.Mkdir("cache", 0777)
+	fmt.Fprintln(os.Stderr, "fetching mapping from keith-turner/ecoji")
 	buf, err := getMapping()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -203,7 +241,6 @@ func main() {
 	for _, original := range ecojiset {
 		removeRune(original)
 	}
-
 	for _, originalPadding := range paddingRunes {
 		removeRune(originalPadding)
 	}
@@ -216,11 +253,26 @@ func main() {
 	for _, personEmoji := range peopleRunes {
 		removeRune(personEmoji[0])
 	}
+	for _, override := range selectionOverrides {
+		removeRune(override[0])
+	}
+	for _, override := range paddingSelectionOverrides {
+		removeRune(override[0])
+	}
 
-	fmt.Println("remaining:", len(singlePointRunesStack))
+	fmt.Fprintln(os.Stderr, "remaining:", len(singlePointRunesStack))
 
 	var index int
-	getReplacement := func() rune {
+	getReplacement := func(isPadding bool, setIndex int) rune {
+		if isPadding {
+			if override, ok := paddingSelectionOverrides[setIndex]; ok {
+				return override[0]
+			}
+		} else {
+			if override, ok := selectionOverrides[setIndex]; ok {
+				return override[0]
+			}
+		}
 		if len(singlePointRunesStack) == 0 {
 			return 'x'
 		}
@@ -229,54 +281,54 @@ func main() {
 		return next
 	}
 
-	fmt.Fprintf(os.Stderr, "## Padding \n\n")
+	fmt.Printf("## Padding \n\n")
 
-	fmt.Fprintf(os.Stderr, "| index | V1 Emoji (hex) | Replacement (hex) (name) |\n")
-	fmt.Fprintf(os.Stderr, "|-------|-------------|-------------------|\n")
+	fmt.Printf("| index | V1 Emoji (hex) | Replacement (hex) (name) |\n")
+	fmt.Printf("|-------|-------------|-------------------|\n")
 
 	for i, original := range paddingRunes {
 		if !checkRune(original) {
-			replacement := getReplacement()
-			name, _ := getName(replacement)
+			replacement := getReplacement(true, i)
+			name := getName(replacement)
 
-			fmt.Printf("replacement padding emoji (%c), using %x ( %c )  %s\n", original, replacement, replacement, name)
-			fmt.Fprintf(os.Stderr, "| %d | %c (%x) | %c (%x) (%s) |\n", i, original, original, replacement, replacement, name)
+			fmt.Fprintf(os.Stderr, "replacement padding emoji (%c), using %x ( %c )  %s\n", original, replacement, replacement, name)
+			fmt.Printf("| %d | %c (%x) | %c (%x) (%s) |\n", i, original, original, replacement, replacement, name)
 		} else {
-			fmt.Fprintf(os.Stderr, "| %d | %c (%x) | - |\n", i, original, original)
+			fmt.Printf("| %d | %c (%x) | - |\n", i, original, original)
 		}
 	}
 
-	fmt.Fprintf(os.Stderr, "\n## Emojis \n\n")
+	fmt.Printf("\n## Emojis \n\n")
 
-	fmt.Fprintf(os.Stderr, "| index | V1 Emoji (hex) | Replacement (hex) (name) |\n")
-	fmt.Fprintf(os.Stderr, "|-------|-------------|-------------------|\n")
+	fmt.Printf("| index | V1 Emoji (hex) | Replacement (hex) (name) |\n")
+	fmt.Printf("|-------|-------------|-------------------|\n")
 
 	var finalSet []rune
 	for i, original := range ecojiset {
 		if !checkRune(original) {
-			replacement := getReplacement()
+			replacement := getReplacement(false, i)
 			finalSet = append(finalSet, replacement)
-			name, _ := getName(replacement)
-			fmt.Printf("replacemed emoji %d (%c), with %x ( %c )  %s\n", i, original, replacement, replacement, name)
-			fmt.Fprintf(os.Stderr, "| %d | %c (%x) | %c (%x) (%s) |\n", i, original, original, replacement, replacement, name)
+			name := getName(replacement)
+			fmt.Fprintf(os.Stderr, "replacemed emoji %d (%c), with %x ( %c )  %s\n", i, original, replacement, replacement, name)
+			fmt.Printf("| %d | %c (%x) | %c (%x) (%s) |\n", i, original, original, replacement, replacement, name)
 		} else {
 			finalSet = append(finalSet, original)
-			fmt.Fprintf(os.Stderr, "| %d | %c (%x) | - |\n", i, original, original)
+			fmt.Printf("| %d | %c (%x) | - |\n", i, original, original)
 		}
 	}
 
-	fmt.Fprintf(os.Stderr, "\n## Unused/remaining \n\n")
+	fmt.Printf("\n## Unused/remaining \n\n")
 
-	fmt.Fprintf(os.Stderr, "| index | V1 Emoji (hex) | Replacement (hex) (name) |\n")
-	fmt.Fprintf(os.Stderr, "|-------|-------------|-------------------|\n")
+	fmt.Printf("| index | V1 Emoji (hex) | Replacement (hex) (name) |\n")
+	fmt.Printf("|-------|-------------|-------------------|\n")
 
 	for i := index; i < len(singlePointRunesStack); i++ {
-		name, _ := getName(singlePointRunesStack[i])
-		fmt.Fprintf(os.Stderr, "| - | %c (%x) (%s) | - |\n", singlePointRunesStack[i], singlePointRunesStack[i], name)
+		name := getName(singlePointRunesStack[i])
+		fmt.Printf("| - | %c (%x) (%s) | - |\n", singlePointRunesStack[i], singlePointRunesStack[i], name)
 	}
-	fmt.Println("unused:", len(singlePointRunesStack)-index+1)
+	fmt.Fprintln(os.Stderr, "unused:", len(singlePointRunesStack)-index+1)
 
-	fmt.Println("writing final set")
+	fmt.Fprintln(os.Stderr, "writing final set")
 	var str string
 	for _, r := range finalSet {
 		str = fmt.Sprintf("%s%x\n", str, r)
@@ -284,7 +336,7 @@ func main() {
 	}
 
 	if err := os.WriteFile("emojis.txt", []byte(str), 0644); err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	// defer f.Close()
